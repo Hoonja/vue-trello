@@ -9,18 +9,19 @@
         </router-link>
       </div>
       <div class="board-item board-item-new">
-        <a class="new-board-btn" href="" @click.prevent="addBoard">
+        <a class="new-board-btn" href="" @click.prevent="SET_IS_ADD_BOARD(true)">
           Create new board...
         </a>
       </div>
     </div>
-    <add-board v-if="isAddBoard" @close="isAddBoard=false" @submit="onAddBoard"></add-board>
+    <add-board v-if="isAddBoard" @close="isAddBoard=false"></add-board>
   </div>
 </template>
 
 <script>
 import { board } from '../api'
 import AddBoard from './AddBoard'
+import { mapState, mapMutations, mapActions } from 'vuex'
 
 export default {
   components: {
@@ -29,11 +30,14 @@ export default {
   data() {
     return {
       loading: false,
-      boards: [],
-      error: '',
-      isAddBoard: false
+      error: ''
     }
   },
+  computed: {
+    ...mapState([
+    'isAddBoard',
+    'boards'
+  ])},
   created() {
     this.fetchData()
   },
@@ -43,23 +47,15 @@ export default {
     })
   },
   methods: {
+    ...mapMutations([
+      'SET_IS_ADD_BOARD'
+    ]),
+    ...mapActions([
+      'FETCH_BOARDS'
+    ]),
     fetchData() {
       this.loading = true
-      board.fetch()
-        .then(data => {
-          this.boards = data.list
-        })
-        .finally(()=> {
-          this.loading = false
-        })
-    },
-    addBoard() {
-      console.log('addBoard()')
-      this.isAddBoard = true
-    },
-    onAddBoard(title) {
-      board.create(title)
-        .then(() => this.fetchData())
+      this.FETCH_BOARDS().finally(() => this.loading = false)
     }
   }
 }
