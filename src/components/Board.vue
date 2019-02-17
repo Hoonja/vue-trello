@@ -21,6 +21,7 @@
 <script>
 import { mapState, mapActions } from 'vuex'
 import List from './List'
+import dragger from '../utils/dragger'
 
 export default {
   components: {
@@ -28,7 +29,8 @@ export default {
   },
   data() {
     return {
-      loading: true
+      loading: true,
+      cDragger: null
     }
   },
   computed: {
@@ -37,12 +39,50 @@ export default {
   created() {
     this.fetchData()
   },
+  updated() {
+    this.setCardDraggable()
+    
+  },
   methods: {
-    ...mapActions(['FETCH_BOARD']),
+    ...mapActions([
+      'FETCH_BOARD',
+      'UPDATE_CARD'
+    ]),
     fetchData() {
       this.loading = true
       this.FETCH_BOARD({ id: this.$route.params.bid })
       .then(() => this.loading = false)
+    },
+    setCardDraggable() {
+      console.log('setCardDraggable')
+      if (this.cDragger) this.cDragger.destroy()
+
+      console.log('init dragger.init')
+      this.cDragger = dragger.init(Array.from(this.$el.querySelectorAll('.card-list')))
+      this.cDragger.on('drop', (el, wrapper, target, siblings) => {
+        console.log('drop event')
+        const targetCard = {
+          id: el.dataset.cardId * 1,
+          pos: 65535
+        }
+
+        const {prev, next} = dragger.siblings({
+          el,
+          wrapper,
+          candidates: Array.from(wrapper.querySelectorAll('.card-item')),
+          type: 'card'
+        });
+        
+        if (!prev && next) {
+          targetCard.pos = next.pos / 2
+        } else if (!next && prev) {
+          targetCard.pos = prev.pos * 2
+        } else if (prev && next) {
+          targetCard.pos = (prev.pos + next.pos) / 2
+        }
+        console.log(targetCard)
+        this.UPDATE_CARD(targetCard)
+      })
     }
   }
 }
