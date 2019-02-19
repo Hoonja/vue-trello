@@ -5,24 +5,43 @@
     </div>
     <div class="header-auth">
       <a href="" v-if="isAuth" @click.prevent="logout">Logout</a>
-      <router-link to="/login">Login</router-link>
+      <router-link v-if="!isAuth" to="/login">Login</router-link>
       <!-- <a>Logout</a> -->
     </div>
   </nav>
 </template>
 
 <script>
-import { mapGetters, mapMutations } from 'vuex'
+import { mapState, mapGetters, mapMutations } from 'vuex'
 
 export default {
   computed: {
+    ...mapState({
+      navbarColor: 'navbarColor',
+      bodyColor: 'bodyColor'
+    }),
     ...mapGetters(['isAuth'])
+  },
+  watch: {
+    'bodyColor': 'updateTheme'
+  },
+  mounted() {
+    this.updateTheme()
   },
   methods: {
     ...mapMutations(['LOGOUT']),
     logout() {
       this.LOGOUT()
       this.$router.push('/login')
+    },
+    updateTheme() {
+      console.log('Navbar updateTheme')
+      this.$el.style.backgroundColor = this.navbarColor
+      
+      const body = document.querySelector('body')
+      const container = document.querySelector('.container')
+      if (body) body.style.backgroundColor = this.bodyColor
+      if (container) container.style.backgroundColor = this.bodyColor
     }
   }
 }

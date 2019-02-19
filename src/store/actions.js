@@ -17,6 +17,25 @@ const actions = {
       commit('SET_BOARD', data.item)
     })
   },
+  DELETE_BOARD(_, {id}) {
+    return api.board.destroy(id)
+  },
+  UPDATE_BOARD({dispatch, state}, {id, title, bgColor}) {
+    return api.board.update(id, {title, bgColor})
+    .then(() => dispatch('FETCH_BOARD', {id: state.board.id}))
+  },
+  ADD_LIST({dispatch, state}, {title, boardId, pos}) {
+    return api.list.create({title, boardId, pos})
+    .then(() => dispatch('FETCH_BOARD', {id: state.board.id}))
+  },
+  UPDATE_LIST({dispatch, state}, {id, pos, title}) {
+    return api.list.update(id, {pos, title})
+    .then(() => dispatch('FETCH_BOARD', {id: state.board.id}))
+  },
+  DELETE_LIST({dispatch, state}, {id}) {
+    return api.list.destroy(id)
+    .then(() => dispatch('FETCH_BOARD', {id: state.board.id}))
+  },
   ADD_CARD({dispatch, state}, {title, listId, pos}) {
     return api.card.create(title, listId, pos)
     .then(() => dispatch('FETCH_BOARD', {id: state.board.id}))
@@ -29,6 +48,10 @@ const actions = {
   },
   UPDATE_CARD({dispatch, state}, {id, title, description, pos, listId}) {
     return api.card.update(id, {title, description, pos, listId})
+    .then(() => dispatch('FETCH_BOARD', {id: state.board.id}))
+  },
+  DELETE_CARD({dispatch, state}, {id}) {
+    return api.card.destroy(id)
     .then(() => dispatch('FETCH_BOARD', {id: state.board.id}))
   }
 }

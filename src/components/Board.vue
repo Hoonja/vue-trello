@@ -3,66 +3,91 @@
     <div class="board-wrapper">
       <div class="board">
         <div class="board-header">
-          <span class="board-title">{{ board.title }}</span>
+          <input type="text" class="form-control" v-if="isEditTitle" v-model="inputTitle" ref="inputTitle" @blur="onSubmitTitle" @keyup.enter="onSubmitTitle">
+          <span class="board-title" v-else @click.prevent="onClickTitle">{{ board.title }}</span>
+          <a class="board-header-btn show-menu" href="" @click.prevent="onShowSettings">... Show Menu</a>
         </div>
         <div class="list-section-wrapper">
           <div class="list-section">
-            <div class="list-wrapper" v-for="list in board.lists" :key="list.pos">
+            <div class="list-wrapper" v-for="list in board.lists" :key="list.pos" :data-list-id="list.id">
               <list :data="list"></list>
+            </div>
+            <div class="list-wrapper">
+              <add-list></add-list>
             </div>
           </div>
         </div>
       </div>
     </div>
+    <board-settings v-if="isShowBoardSettings" />
     <router-view></router-view>
   </div>
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex'
+import { mapState, mapMutations, mapActions } from 'vuex'
 import List from './List'
+import AddList from './AddList'
+import BoardSettings from './BoardSettings'
 import dragger from '../utils/dragger'
 
 export default {
   components: {
-    List
+    List,
+    AddList,
+    BoardSettings
   },
   data() {
     return {
       loading: true,
-      cDragger: null
+      cDragger: null,
+      lDragger: null,
+      isEditTitle: false,
+      inputTitle: ''
     }
   },
   computed: {
-    ...mapState(['board'])
+    ...mapState(['board', 'isShowBoardSettings'])
   },
   created() {
     this.fetchData()
+    .then(() => {
+      this.SET_THEME(this.board.bgColor)
+      this.inputTitle = this.board.title
+    })
+    this.SET_IS_SHOW_BOARD_SETTINGS(false)
   },
   updated() {
     this.setCardDraggable()
-    
+    this.setListDraggable()
   },
   methods: {
+    ...mapMutations([
+      'SET_THEME',
+      'SET_IS_SHOW_BOARD_SETTINGS'
+    ]),
     ...mapActions([
       'FETCH_BOARD',
-      'UPDATE_CARD'
+      'UPDATE_CARD',
+      'UPDATE_BOARD',
+      'UPDATE_LIST'
     ]),
     fetchData() {
       this.loading = true
-      this.FETCH_BOARD({ id: this.$route.params.bid })
+      return this.FETCH_BOARD({ id: this.$route.params.bid })
       .then(() => this.loading = false)
     },
     setCardDraggable() {
-      console.log('setCardDraggable')
       if (this.cDragger) this.cDragger.destroy()
 
-      console.log('init dragger.init')
       this.cDragger = dragger.init(Array.from(this.$el.querySelectorAll('.card-list')))
-      this.cDragger.on('drop', (el, wrapper, target, siblings) => {
-        console.log('drop event')
+      this.cDragger.on('drop', (el, wrapper) => {
+        // console.log('cDragger drop', el.dataset)
+        // console.log('cDragger drop list id', wrapper.parentElement.dataset.listId)
+        
         const targetCard = {
           id: el.dataset.cardId * 1,
+          // listId: wrapper.parentElement.dataset.listId,
           pos: 65535
         }
 
@@ -80,9 +105,60 @@ export default {
         } else if (prev && next) {
           targetCard.pos = (prev.pos + next.pos) / 2
         }
-        console.log(targetCard)
+        
         this.UPDATE_CARD(targetCard)
       })
+    },
+    setListDraggable() {
+      if (this.lDragger) this.lDragger.destroy()
+
+      const options = {
+        invalid: (el, handle) => !/^list/.test(handle.className)
+      }
+      this.lDragger = dragger.init(
+        Array.from(this.$el.querySelectorAll('.list-section')), options)
+      this.lDragger.on('drop', (el, wrapper) => {
+        const targetList = {
+          id: el.dataset.listId * 1,
+          pos: 65535
+        }
+
+        const {prev, next} = dragger.siblings({
+          el,
+          wrapper,
+          candidates: Array.from(wrapper.querySelectorAll('.list')),
+          type: 'list'
+        });
+        
+        if (!prev && next) {
+          targetList.pos = next.pos / 2
+        } else if (!next && prev) {
+          targetList.pos = prev.pos * 2
+        } else if (prev && next) {
+          targetList.pos = (prev.pos + next.pos) / 2
+        }
+        console.log(targetList)
+        this.UPDATE_LIST(targetList)
+      })
+    },
+    onClickTitle() {
+      this.isEditTitle = true
+      this.$nextTick(() => this.$refs.inputTitle.focus())
+    },
+    onShowSettings() {
+      this.SET_IS_SHOW_BOARD_SETTINGS(true)
+    },
+    onSubmitTitle() {
+      this.isEditTitle = false
+
+      this.inputTitle = this.inputTitle.trim()
+      if (!this.inputTitle) return
+
+      const id = this.board.id
+      const title = this.inputTitle
+      if (title === this.board.title) return
+
+      this.UPDATE_BOARD({id, title})
     }
   }
 }

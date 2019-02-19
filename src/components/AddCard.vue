@@ -1,7 +1,7 @@
 <template>
   <div class="add-card">
     <form @submit.prevent="onSubmit">
-      <input class="form-control" type="text" ref="inputText" v-model="inputTitle">
+      <input class="form-control" type="text" ref="inputText" v-model="inputTitle" @blur="$emit('close')">
       <button class="btn btn-success" type="submit" :disabled="invalidInput">Add Card</button>
       <a class="cancel-add-btn" @click.prevent="$emit('close')">&times;</a>
     </form>
